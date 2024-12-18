@@ -3,7 +3,7 @@ import cv2
 from matplotlib import pyplot as plt
 
 # Function to import the video file and set output video file
-def prep_video(file_path):
+def prep_video(file_path, output_file_name):
     vid = cv2.VideoCapture(file_path)
     
     # Checks if the video capture object was successfully opened
@@ -16,8 +16,27 @@ def prep_video(file_path):
     frame_height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
     print(f"Frame width: {frame_width}, Frame height: {frame_height}")
 
+    # Sets a constant output path for processed videos
+    output_path = "task-A/processed-files-A/"
+
+    # Joins the output file name with the output path
+    full_output_path = output_path + output_file_name
+
+    # Checks if the file already exists and modifies the name if necessary
+    base_name, ext = full_output_path.rsplit('.', 1)
+    counter = 1
+    while True:
+        try:
+            with open(full_output_path, 'x'):
+                break
+        except FileExistsError:
+            print("File name already exists. Modifying...")
+            full_output_path = f"{base_name}_{counter}.{ext}"
+            print(f"New file name: {base_name}_{counter}.{ext}")
+            counter += 1
+
     # Sets the output video file
-    out = cv2.VideoWriter("task-A/processed-files-A/processed_video.avi",
+    out = cv2.VideoWriter(full_output_path,
                           cv2.VideoWriter_fourcc(*"MJPG"), 
                           30.0, 
                           (frame_width, frame_height))
@@ -38,7 +57,9 @@ if __name__ == "__main__":
     from detectNight import detect_night
     print("Enter path of video to check for night: ")
     file_path = input()
-    detect_night(file_path)
+    print("Enter the output file name: (use .avi extension)")
+    output_file_name = input()
+    detect_night(file_path, output_file_name)
 
 # Blurs faces in the video
 

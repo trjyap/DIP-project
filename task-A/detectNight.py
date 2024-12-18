@@ -2,10 +2,10 @@ import numpy as np
 import cv2
 
 # Function to detect night in the video
-def detect_night(file_path):
+def detect_night(file_path, output_file_name):
     from main import prep_video
     # Prepares the video for processing
-    vid, out, total_no_frames = prep_video(file_path)
+    vid, out, total_no_frames = prep_video(file_path, output_file_name)
 
     # Checks if the video was prepared successfully
     if vid is None or out is None:
@@ -60,3 +60,4 @@ def detect_night(file_path):
     out.release()
     cv2.destroyAllWindows()
     print("Processing complete. Video released.")
+    print()
