@@ -3,7 +3,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-def extract_paragraphs_with_histograms(image_paths, horizontal_thresh=10, vertical_thresh=10, min_area_threshold=1000, output_dir="output", histogram_dir="histogram"):
+def extract_paragraphs_with_histograms(image_paths, horizontal_thresh=10, vertical_thresh=10, min_area_threshold=1000, output_dir="task-B/output", histogram_dir="task-B/histogram"):
     os.makedirs(output_dir, exist_ok=True)  # Ensure the output directory exists
     os.makedirs(histogram_dir, exist_ok=True)  # Ensure the histogram directory exists
 
