@@ -1,113 +1,113 @@
 import cv2
-import os
 import numpy as np
-import matplotlib.pyplot as plt
+import os
+import glob
 
-def extract_paragraphs_with_histograms(image_paths, horizontal_thresh=10, vertical_thresh=10, min_area_threshold=1000, output_dir="task-B/output", histogram_dir="task-B/histogram"):
-    os.makedirs(output_dir, exist_ok=True)  # Ensure the output directory exists
-    os.makedirs(histogram_dir, exist_ok=True)  # Ensure the histogram directory exists
+def process_images_with_columns(image_paths, output_dir="task-B/paragraphs"):
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
 
     for image_path in image_paths:
-        # Load the image as is (black text on white background)
-        img = cv2.imread(image_path)
-        if img is None:
-            print(f"Error: Unable to load image {image_path}")
+        base_name = os.path.splitext(os.path.basename(image_path))[0]
+
+        # Read the image
+        image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        if image is None:
+            print(f"Could not read the image at {image_path}")
             continue
 
-        # Convert to grayscale for histogram processing
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # Threshold the image (white text on black background for easier processing)
+        _, binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY_INV)
 
-        # Binary thresholding (keeping black text on white background)
-        _, binary_img = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
+        # Get the height and width of the image
+        height, width = binary_image.shape
 
-        # Calculate horizontal and vertical histograms
-        horizontal_hist = np.sum(binary_img == 0, axis=1)  # Count black pixels per row
-        vertical_hist = np.sum(binary_img == 0, axis=0)    # Count black pixels per column
+        # Compute horizontal and vertical histograms
+        horizontal_histogram = np.sum(binary_image == 255, axis=1)
+        vertical_histogram = np.sum(binary_image == 255, axis=0)
 
-        # Save histograms as plots
-        base_name = os.path.splitext(os.path.basename(image_path))[0]
-        plt.figure(figsize=(12, 6))
+        # Detect tables based on high-density regions in histograms
+        table_rows = np.where(horizontal_histogram > 0.8 * width)[0]
 
-        # Horizontal Histogram
-        plt.subplot(2, 1, 1)
-        plt.plot(horizontal_hist, color='blue')
-        plt.title(f"Horizontal Histogram for {base_name}")
-        plt.xlabel("Row Index")
-        plt.ylabel("Black Pixel Count")
+        # Create a mask for table regions
+        table_mask = np.zeros_like(binary_image)
+        if len(table_rows) > 0:
+            table_mask[table_rows.min():table_rows.max(),:] = 255
 
-        # Vertical Histogram
-        plt.subplot(2, 1, 2)
-        plt.plot(vertical_hist, color='green')
-        plt.title(f"Vertical Histogram for {base_name}")
-        plt.xlabel("Column Index")
-        plt.ylabel("Black Pixel Count")
+        # Remove table regions from the binary image
+        non_table_image = cv2.bitwise_and(binary_image, cv2.bitwise_not(table_mask))
 
-        # Save the histogram as an image
-        histogram_output_path = os.path.join(histogram_dir, f"{base_name}_histogram.png")
-        plt.tight_layout()
-        plt.savefig(histogram_output_path)  # Save the plot to a file
-        plt.close()  # Close the plot to free memory
-        print(f"Saved histogram for {base_name} at {histogram_output_path}")
+        # Compute vertical histogram (sum of black pixels per column) for non-table regions
+        vertical_histogram = np.sum(non_table_image == 255, axis=0)
 
-        # Extract ranges based on horizontal and vertical histograms
-        horizontal_mask = horizontal_hist > horizontal_thresh
-        vertical_mask = vertical_hist > vertical_thresh
+        # Identify column boundaries based on gaps in the vertical histogram
+        column_gaps = np.where(vertical_histogram == 0)[0]
+        column_boundaries = []
+        prev_gap = 0
+        for gap in column_gaps:
+            if gap - prev_gap > 50:  # Minimum width for a column (adjustable)
+                column_boundaries.append((prev_gap, gap))
+            prev_gap = gap
+        if prev_gap < width:
+            column_boundaries.append((prev_gap, width))  # Add the last column
 
-        row_ranges = extract_ranges(horizontal_mask)
-        col_ranges = extract_ranges(vertical_mask)
+        # Process each detected column
+        column_count = len(column_boundaries)
+        for col_idx, (start_col, end_col) in enumerate(column_boundaries):
+            # Crop the column region
+            column_image = non_table_image[:, start_col - 30 : end_col + 30]
 
-        paragraph_count = 1
-        for row_start, row_end in row_ranges:
-            for col_start, col_end in col_ranges:
-                # Extract the paragraph region
-                region = binary_img[row_start:row_end, col_start:col_end]
+            # Compute horizontal histogram for this column
+            horizontal_histogram = np.sum(column_image == 255, axis=1)
 
-                # Filter out small areas
-                if region.shape[0] * region.shape[1] < min_area_threshold:
-                    continue
+            # Identify rows with black pixels (text rows)
+            text_rows = np.where(horizontal_histogram > 0)[0]
 
-                # Save the paragraph image
-                paragraph_output_path = os.path.join(output_dir, f"{base_name}_paragraph_{paragraph_count}.png")
-                cv2.imwrite(paragraph_output_path, region)
-                paragraph_count += 1
+            # Identify paragraph start and end rows
+            paragraphs = []
+            current_paragraph = []
+            max_gap = 30  # Max gap (in rows) to consider as part of the same paragraph
 
-        print(f"Extracted paragraphs for {base_name} saved to {output_dir}")
+            for i in range(len(text_rows)):
+                if not current_paragraph:
+                    # Start a new paragraph
+                    current_paragraph.append(text_rows[i])
+                else:
+                    # Check the gap between the current and previous row
+                    gap = text_rows[i] - text_rows[i-1]
+                    if gap <= max_gap:
+                        current_paragraph.append(text_rows[i])
+                    else:
+                        # Save the completed paragraph and start a new one
+                        paragraphs.append(current_paragraph)
+                        current_paragraph = [text_rows[i]]
+            # Add the last paragraph if it exists
+            if current_paragraph:
+                paragraphs.append(current_paragraph)
 
-def extract_ranges(mask):
-    """
-    Extract start and end ranges from a 1D boolean mask.
+            # Create output images for each paragraph
+            output_images = []
+            for paragraph in paragraphs:
+                top = paragraph[0]
+                bottom = paragraph[-1]
+                cropped_paragraph = column_image[max(0, top - 30):min(height, bottom + 30), :]
 
-    Args:
-        mask (np.array): A 1D boolean array indicating presence.
+                # Invert to white text on a black background
+                cropped_paragraph = cv2.bitwise_not(cropped_paragraph)
+                output_images.append(cropped_paragraph)
 
-    Returns:
-        list of tuples: Start and end indices for detected regions.
-    """
-    ranges = []
-    start = None
+            # Save the paragraphs to disk
+            for idx, paragraph_image in enumerate(output_images):
+                output_path = os.path.join(output_dir, f"{base_name}_column_{col_idx + 1}_paragraph_{idx + 1}.png")
+                cv2.imwrite(output_path, paragraph_image)
 
-    for i, val in enumerate(mask.tolist()):
-        if val and start is None:  # Start of a new range
-            start = i
-        elif not val and start is not None:  # End of a range
-            ranges.append((start, i))
-            start = None
-    if start is not None:  # Add the last range if still open
-        ranges.append((start, len(mask)))
+        print(f"Processed '{image_path}' with {column_count} columns.")
 
-    return ranges
+# Process multiple images in a folder
+def process_folder_with_columns(input_folder, output_dir="task-B/paragraphs"):
+    # Get all PNG files in the folder
+    image_paths = glob.glob(os.path.join(input_folder, "*.png"))
+    process_images_with_columns(image_paths, output_dir)
 
-# List of input images
-image_paths = [
-    "task-B/project-files-B/001.png",
-    "task-B/project-files-B/002.png",
-    "task-B/project-files-B/003.png",
-    "task-B/project-files-B/004.png",
-    "task-B/project-files-B/005.png",
-    "task-B/project-files-B/006.png",
-    "task-B/project-files-B/007.png",
-    "task-B/project-files-B/008.png",
-]
-
-# Process the images
-extract_paragraphs_with_histograms(image_paths, horizontal_thresh=10, vertical_thresh=10, min_area_threshold=1000)
+# Example usage
+process_folder_with_columns("task-B/project-files-B", "task-B/paragraphs")
