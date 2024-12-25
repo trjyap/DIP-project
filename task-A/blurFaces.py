@@ -11,7 +11,7 @@ def blur_faces(video_file_path, output_file_name, face_cascade_path):
         return
     
     # Load the Haar cascade for face detection
-    face_cascade = cv2.CascadeClassifier(face_cascade_path)
+    face_cascade = cv2.CascadeClassifier(r"task-A\face_detector.xml")  # Use corrected path
     if face_cascade.empty():
         print("Error: Failed to load face detection model. Check file path.")
         return
@@ -51,9 +51,9 @@ def blur_faces(video_file_path, output_file_name, face_cascade_path):
 # Main script to call the blur_faces function
 if __name__ == "__main__":
     # File paths
-    input_video_path = "task-A/project-files-A/street.mp4"
+    input_video_path = r"task-A\project-files-A\street.mp4"  # Use raw string
     output_video_file_name = "blurred_video.avi"
-    face_cascade_path = "task-A/project-files-A/face_detector.xml"
+    face_cascade_path = r"task-A\project-files-A\face_detector.xml"  # Use raw string
 
     # Blur faces in the video
     blur_faces(input_video_path, output_video_file_name, face_cascade_path)
