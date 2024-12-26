@@ -47,27 +47,60 @@ def prep_video(file_path, output_file_name):
     
     return vid, out, total_no_frames
 
+# Gets user input for video path and output file name
+def get_user_input():
+    file_path = input("Enter path of video to process: ")
+    output_file_name = input("Enter the output file name (use .avi extension): ")
+    return file_path, output_file_name
+
 
 # ===========================================================================================================
 # MAIN FUNCTION
 # ===========================================================================================================
 
-if __name__ == "__main__":
-    # Detects night in the video and brightens the video if it is night
-    from detectNight import detect_night
-    print("Enter path of video to check for night: ")
-    file_path = input()
-    print("Enter the output file name: (use .avi extension)")
-    output_file_name = input()
-    detect_night(file_path, output_file_name)
+def main():
+    while True:
+        print("\n======SIMPLE VIDEO PROCESSING TOOL======")
+        print("Select a task to perform:")
+        print("1. Detect night and brighten the video")
+        print("2. Blur faces in the video")
+        print("3. Resize and overlay the talking video on the top left")
+        print("4. Add watermark to the video")
+        print("5. Append ending screen to the video")
+        print("6. Exit")
+        choice = input("Enter your choice (1-6): ")
 
-# Blurs faces in the video
+        if choice == '6':
+            print("Exiting... Goodbye!")
+            break
+        # Detects night in the video and brightens the video if it is night
+        elif choice == '1':     
+            file_path, output_file_name = get_user_input()
+            from detectNight import detect_night
+            detect_night(file_path, output_file_name)
+        # Blurs faces in the video
+        elif choice == '2':
+            file_path, output_file_name = get_user_input()
+            cascade_path = "task-A/face_detector.xml"
+            from blurFaces import blur_faces
+            blur_faces(file_path, output_file_name, cascade_path)
+        # Resizes and overlays the talking video on the top left
+        # elif choice == '3':
+        #     get_user_input()
+        #     file_path, output_file_name = get_user_input()
+        #     resize_and_overlay(file_path, output_file_name)
+        # Adds watermark to the video
+        # elif choice == '4':
+        #     get_user_input()
+        #     file_path, output_file_name = get_user_input()
+        #     add_watermark(file_path, output_file_name)
+        # Appends ending screen to the video
+        # elif choice == '5':
+        #     get_user_input()
+        #     file_path, output_file_name = get_user_input()
+        #     append_ending_screen(file_path, output_file_name)
+        else:
+            print("Invalid choice. Please select a valid option.")
 
 
-# Resizes and overlays the talking video on the top left
-
-
-# Adds watermark to the video
-
-
-# Appends ending screen to the video
+main()

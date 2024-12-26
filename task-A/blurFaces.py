@@ -39,9 +39,6 @@ def blur_faces(video_file_path, output_file_name, face_cascade_path):
 
         # Write the processed frame to the output file
         out.write(frame)
-        
-        frame_count += 1
-        print(f"Processed frame {frame_count}/{total_frames}")
 
     print("Processing completed.")
     # Release video objects
