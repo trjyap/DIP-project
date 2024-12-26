@@ -1,6 +1,4 @@
-import numpy as np
 import cv2
-from matplotlib import pyplot as plt
 
 # Function to import the video file and set output video file
 def prep_video(file_path, output_file_name):
@@ -60,7 +58,7 @@ def get_user_input():
 
 def main():
     while True:
-        print("\n======SIMPLE VIDEO PROCESSING TOOL======")
+        print("\n============= SIMPLE VIDEO PROCESSING TOOL =============")
         print("Select a task to perform:")
         print("1. Detect night and brighten the video")
         print("2. Blur faces in the video")
@@ -71,7 +69,7 @@ def main():
         choice = input("Enter your choice (1-6): ")
 
         if choice == '6':
-            print("Exiting... Goodbye!")
+            print("Exiting... Goodbye!\n")
             break
         # Detects night in the video and brightens the video if it is night
         elif choice == '1':     
@@ -81,26 +79,24 @@ def main():
         # Blurs faces in the video
         elif choice == '2':
             file_path, output_file_name = get_user_input()
-            cascade_path = "task-A/face_detector.xml"
             from blurFaces import blur_faces
-            blur_faces(file_path, output_file_name, cascade_path)
+            blur_faces(file_path, output_file_name)
         # Resizes and overlays the talking video on the top left
         # elif choice == '3':
-        #     get_user_input()
         #     file_path, output_file_name = get_user_input()
         #     resize_and_overlay(file_path, output_file_name)
         # Adds watermark to the video
         # elif choice == '4':
-        #     get_user_input()
         #     file_path, output_file_name = get_user_input()
         #     add_watermark(file_path, output_file_name)
-        # Appends ending screen to the video
-        # elif choice == '5':
-        #     get_user_input()
-        #     file_path, output_file_name = get_user_input()
-        #     append_ending_screen(file_path, output_file_name)
+        # Appends ending screen to the video (or another video to stitch)
+        elif choice == '5':
+            file_path, output_file_name = get_user_input()
+            from stitching import stitching
+            stitching(file_path, output_file_name)
         else:
             print("Invalid choice. Please select a valid option.")
 
-
-main()
+# Ensures that main() runs only when it is called directly
+if __name__ == "__main__":
+    main()

@@ -11,6 +11,8 @@ def detect_night(file_path, output_file_name):
     if vid is None or out is None:
         print("Error: Video preparation failed.")
         return
+    else: 
+        print("Night detection in progress...\n")
 
     # Initialises total brightness value for calculation
     total_brightness = 0.0
@@ -36,6 +38,12 @@ def detect_night(file_path, output_file_name):
     print(f"Total brightness of the video: {total_brightness}")
     print(f"Average brightness of the video: {vid_avg_brightness}")
 
+    # Prints out detection results
+    if vid_avg_brightness < 100:
+        print("Night detected in the video. Increasing brightness...\n")
+    else:
+        print("No night detected in the video. No brightness adjustment needed.\n")
+
     # Reset the video capture to the beginning
     vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
@@ -59,5 +67,4 @@ def detect_night(file_path, output_file_name):
     vid.release()
     out.release()
     cv2.destroyAllWindows()
-    print("Processing complete. Video released.")
-    print()
+    print("Night detection and brightness adjustment complete. Video released.\n")
