@@ -142,23 +142,19 @@ def process_images_with_columns(image_paths, output_dir="task-B/paragraphs"):
                 paragraph_height, paragraph_width = cropped_paragraph.shape
 
                 # Check if the paragraph contains a table
-                horizontal_histogram = np.sum(cropped_paragraph == 255, axis=1)
-                table_row_indices = np.where(horizontal_histogram > 0.8 * paragraph_width)[0]
-                if len(table_row_indices) > 0:
-                    # Skip the paragraph if it contains a table
-                    continue
+                # horizontal_histogram = np.sum(cropped_paragraph == 255, axis=1)
+                # table_row_indices = np.where(horizontal_histogram > 0.8 * paragraph_width)[0]
+                # if len(table_row_indices) > 0:
+                #     # Skip the paragraph if it contains a table
+                #     continue
 
                 # Check if the paragraph contains an image
-                image_like_rows = horizontal_histogram > 5
-                consecutive_black_rows = 0
-                for is_black_row in image_like_rows:
-                    if is_black_row:
-                        consecutive_black_rows += 2
-                        if consecutive_black_rows > 1:
-                            # Skip the paragraph if it contains an image
-                            continue
-                    else:
-                        consecutive_black_rows = 0
+                image_density_threshold = 0.8  # Adjust this threshold as needed
+                image_density = np.sum(cropped_paragraph == 255) / (paragraph_height * paragraph_width)
+                if image_density > image_density_threshold:
+                    # Skip the paragraph if it contains an image
+                    continue
+
 
                 # Check if the paragraph is larger than 700x700, this is especially for 004.png
                 if paragraph_height > 700 and paragraph_width > 700:
