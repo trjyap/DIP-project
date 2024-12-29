@@ -82,9 +82,10 @@ def main():
             from blurFaces import blur_faces
             blur_faces(file_path, output_file_name)
         # Resizes and overlays the talking video on the top left
-        # elif choice == '3':
-        #     file_path, output_file_name = get_user_input()
-        #     resize_and_overlay(file_path, output_file_name)
+        elif choice == '3':
+            file_path, output_file_name = get_user_input()
+            from overlay import overlay_video(file_path, output_file_name)
+            overlay_video(file_path, output_file_name)
         # Adds watermark to the video
         # elif choice == '4':
         #     file_path, output_file_name = get_user_input()
