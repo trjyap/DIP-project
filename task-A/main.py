@@ -84,7 +84,7 @@ def main():
         # Resizes and overlays the talking video on the top left
         elif choice == '3':
             file_path, output_file_name = get_user_input()
-            from overlay import overlay_video(file_path, output_file_name)
+            from overlay import overlay_video
             overlay_video(file_path, output_file_name)
         # Adds watermark to the video
         # elif choice == '4':
