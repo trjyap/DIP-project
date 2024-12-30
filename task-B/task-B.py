@@ -1,7 +1,5 @@
 import cv2
 import numpy as np
-import os
-import glob
 
 # Removes table regions from a binary image based on pixel density analysis
 def remove_table(binary_image, table_density_threshold=0.8):
@@ -47,11 +45,9 @@ def column_detection(binary_image, min_column_width=50):
 # Detects paragraphs within a column by analyzing vertical spacing between text lines
 def paragraph_detection(column_image, max_gap=30, table_mask=None):
     height, _ = column_image.shape
-    
     # Count white pixels in each row to find text lines
     horizontal_histogram = np.sum(column_image == 255, axis=1)
     text_rows = np.where(horizontal_histogram > 0)[0]
-
     # Group text rows into paragraphs based on vertical gaps
     paragraphs = []
     current_paragraph = []
@@ -69,15 +65,14 @@ def paragraph_detection(column_image, max_gap=30, table_mask=None):
             else:
                 paragraphs.append(current_paragraph)
                 current_paragraph = [text_rows[i]]
-    if current_paragraph:
-        paragraphs.append(current_paragraph)
 
     # Refine paragraph boundaries and filter out table regions
+    if current_paragraph:
+        paragraphs.append(current_paragraph)
     refined_paragraphs = []
     for paragraph in paragraphs:
         top = paragraph[0]
         bottom = paragraph[-1]
-
         # Skip paragraphs that intersect with tables
         if table_mask is not None:
             table_intersection = np.any(table_mask[max(0, top - 30):min(height, bottom + 30), :] == 255)
@@ -89,11 +84,9 @@ def paragraph_detection(column_image, max_gap=30, table_mask=None):
     return refined_paragraphs
 
 # Main function to process multiple images, detecting and extracting paragraphs from columns.
-def process_images_with_columns(image_paths, output_dir="task-B/paragraphs"):
-    os.makedirs(output_dir, exist_ok=True)
-
+def extract_paragraphs(image_paths, output_dir="task-B/paragraphs"):
     for image_path in image_paths:
-        base_name = os.path.splitext(os.path.basename(image_path))[0]
+        base_name = image_path.split('/')[-1].split('.')[0]
 
         # Load and binarize the image
         image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -111,7 +104,7 @@ def process_images_with_columns(image_paths, output_dir="task-B/paragraphs"):
         column_boundaries = column_detection(non_table_image)
 
         # Process each detected column
-        for col_idx, (start_col, end_col) in enumerate(column_boundaries):
+        for col_index, (start_col, end_col) in enumerate(column_boundaries):
             # Extract column with padding
             column_image = non_table_image[:, max(0, start_col - 30):min(non_table_image.shape[1], end_col + 30)]
 
@@ -119,7 +112,7 @@ def process_images_with_columns(image_paths, output_dir="task-B/paragraphs"):
             paragraphs = paragraph_detection(column_image, table_mask=table_mask[:, start_col - 30:end_col + 30])
 
             # Process each paragraph in the column
-            for idx, (top, bottom) in enumerate(paragraphs):
+            for index, (top, bottom) in enumerate(paragraphs):
                 cropped_paragraph = column_image[top:bottom, :]
                 paragraph_height, paragraph_width = cropped_paragraph.shape
 
@@ -134,12 +127,12 @@ def process_images_with_columns(image_paths, output_dir="task-B/paragraphs"):
                     # Detect columns in the large paragraph
                     paragraph_columns = column_detection(cropped_paragraph)
                     # Process each detected sub-columns
-                    for sub_col_idx, (sub_start_col, sub_end_col) in enumerate(paragraph_columns):
+                    for sub_col_index, (sub_start_col, sub_end_col) in enumerate(paragraph_columns):
                         sub_column_image = cropped_paragraph[:, max(0, sub_start_col - 30):min(paragraph_width, sub_end_col + 30)]
                         # Detect paragraphs within the sub-column
                         sub_paragraphs = paragraph_detection(sub_column_image)
                         # Process each paragraph in the sub-column
-                        for sub_idx, (sub_top, sub_bottom) in enumerate(sub_paragraphs):
+                        for sub_index, (sub_top, sub_bottom) in enumerate(sub_paragraphs):
                             sub_cropped_paragraph = sub_column_image[sub_top:sub_bottom, :]
                             # Ignore very small paragraphs 40x40 (probably just a full stop image)
                             if sub_cropped_paragraph.shape[0] < 40 or sub_cropped_paragraph.shape[1] < 40:
@@ -147,20 +140,29 @@ def process_images_with_columns(image_paths, output_dir="task-B/paragraphs"):
                                 
                             # Invert colors for output (black text on white background)
                             sub_cropped_paragraph = cv2.bitwise_not(sub_cropped_paragraph)
-                            output_path = os.path.join(output_dir, f"{base_name}_column_{sub_col_idx + 1}_paragraph_{sub_idx + 1}.png")
+                            output_path = f"{output_dir}/{base_name}_column_{sub_col_index + 1}_paragraph_{sub_index + 1}.png"
                             cv2.imwrite(output_path, sub_cropped_paragraph)
                 else:
                     # Process normal-sized paragraphs (paragraphs smaller than 700x700)
                     cropped_paragraph = cv2.bitwise_not(cropped_paragraph)
-                    output_path = os.path.join(output_dir, f"{base_name}_column_{col_idx + 1}_paragraph_{idx + 1}.png")
+                    output_path = f"{output_dir}/{base_name}_column_{col_index + 1}_paragraph_{index + 1}.png"
                     cv2.imwrite(output_path, cropped_paragraph)
         # Print which image have how many columns detected
-        print(f"Processed '{image_path}' with {len(column_boundaries)} columns detected.")
+        print(f"Processed {base_name} with {len(column_boundaries) - 1} columns detected.")
 
-# Process all PNG images in the "task-B/project-files-B" folder
-def process_folder_with_images(input_folder, output_dir="task-B/paragraphs"):
-    image_paths = glob.glob(os.path.join(input_folder, "*.png"))
-    process_images_with_columns(image_paths, output_dir)
+# Process images
+def process_images(output_dir="task-B/paragraphs"):
+    image_paths = [
+        "task-B/project-files-B/001.png",
+        "task-B/project-files-B/002.png",
+        "task-B/project-files-B/003.png",
+        "task-B/project-files-B/004.png",
+        "task-B/project-files-B/005.png",
+        "task-B/project-files-B/006.png",
+        "task-B/project-files-B/007.png",
+        "task-B/project-files-B/008.png"
+        ]
+    extract_paragraphs(image_paths, output_dir)
 
 # Run the main function to process images and extract paragraphs from columns
-process_folder_with_images("task-B/project-files-B", "task-B/paragraphs")
+process_images()
