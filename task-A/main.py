@@ -87,9 +87,10 @@ def main():
             from overlay import overlay_video
             overlay_video(file_path, output_file_name)
         # Adds watermark to the video
-        # elif choice == '4':
-        #     file_path, output_file_name = get_user_input()
-        #     add_watermark(file_path, output_file_name)
+        elif choice == '4':
+           file_path, output_file_name = get_user_input()
+           from watermark import add_watermark
+           add_watermark(file_path, output_file_name)
         # Appends ending screen to the video (or another video to stitch)
         elif choice == '5':
             file_path, output_file_name = get_user_input()
